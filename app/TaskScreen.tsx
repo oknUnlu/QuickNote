@@ -10,412 +10,524 @@ import {
   Platform,
   Modal,
   Pressable,
+  ScrollView,
 } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons, Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Calendar from 'expo-calendar';
-import { Feather } from '@expo/vector-icons';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import { translations, Language } from '../translations/translations';
+
+// ─── Interfaces ───────────────────────────────────────────────────────────────
+
+interface SubTask {
+  id: string;
+  title: string;
+  completed: boolean;
+}
 
 interface Task {
   id: string;
   title: string;
   completed: boolean;
   priority: 'low' | 'medium' | 'high';
-  dueDate?: Date;
-  calendarEventId?: string;
+  category?: string;
+  subtasks?: SubTask[];
+  createdAt: string;
 }
 
-const TaskScreen = ({ theme }: { theme: any }) => {
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+const PRIORITY_CONFIG = {
+  low:    { color: '#10B981', label: 'Düşük',  labelEn: 'Low'    },
+  medium: { color: '#F59E0B', label: 'Orta',   labelEn: 'Medium' },
+  high:   { color: '#EF4444', label: 'Yüksek', labelEn: 'High'   },
+};
+
+const DEFAULT_TASK_CATEGORIES = ['Kişisel', 'İş', 'Alışveriş', 'Sağlık', 'Eğitim'];
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
+const TaskScreen = ({ theme, language = 'tr' }: { theme: any; language?: Language }) => {
+  const strings = translations[language];
+
   const [tasks, setTasks] = useState<Task[]>([]);
   const [newTaskTitle, setNewTaskTitle] = useState('');
-  const [calendars, setCalendars] = useState<Calendar.Calendar[]>([]);
-  const [selectedCalendar, setSelectedCalendar] = useState<Calendar.Calendar | null>(null);
-  const [showCalendarModal, setShowCalendarModal] = useState(false);
-  const [taskToAdd, setTaskToAdd] = useState<Task | null>(null);
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [showTimePicker, setShowTimePicker] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [selectedTime, setSelectedTime] = useState(new Date());
+  const [newTaskPriority, setNewTaskPriority] = useState<'low' | 'medium' | 'high'>('medium');
+  const [newTaskCategory, setNewTaskCategory] = useState('');
+  const [taskCategories, setTaskCategories] = useState<string[]>(DEFAULT_TASK_CATEGORIES);
+  const [expandedTask, setExpandedTask] = useState<string | null>(null);
+  const [newSubtaskInputs, setNewSubtaskInputs] = useState<Record<string, string>>({});
+  const [filterCategory, setFilterCategory] = useState<string | null>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showCatModal, setShowCatModal] = useState(false);
+  const [newCategoryInput, setNewCategoryInput] = useState('');
 
-  useEffect(() => {
-    loadTasks();
-    if (Platform.OS === 'android') {
-      requestAndroidCalendarPermission();
-    }
-  }, []);
+  useEffect(() => { loadTasks(); }, []);
+
+  // ─── Storage ─────────────────────────────────────────────────────────────────
 
   const loadTasks = async () => {
     try {
-      const savedTasks = await AsyncStorage.getItem('tasks');
-      if (savedTasks) {
-        setTasks(JSON.parse(savedTasks));
+      const saved = await AsyncStorage.getItem('tasks_v2');
+      if (saved) setTasks(JSON.parse(saved));
+      else {
+        // Migrate old tasks if they exist
+        const old = await AsyncStorage.getItem('tasks');
+        if (old) {
+          const migrated: Task[] = JSON.parse(old).map((t: any) => ({
+            ...t,
+            subtasks: t.subtasks || [],
+            category: t.category || '',
+            createdAt: t.createdAt || new Date().toISOString(),
+          }));
+          setTasks(migrated);
+          await AsyncStorage.setItem('tasks_v2', JSON.stringify(migrated));
+        }
       }
-    } catch (error) {
-      Alert.alert('Error', 'Failed to load tasks');
-    }
+    } catch (_) {}
   };
 
-  const saveTasks = async (updatedTasks: Task[]) => {
+  const saveTasks = async (updated: Task[]) => {
     try {
-      await AsyncStorage.setItem('tasks', JSON.stringify(updatedTasks));
-    } catch (error) {
-      Alert.alert('Error', 'Failed to save tasks');
-    }
+      await AsyncStorage.setItem('tasks_v2', JSON.stringify(updated));
+    } catch (_) {}
   };
+
+  // ─── Task CRUD ────────────────────────────────────────────────────────────────
 
   const addTask = () => {
-    if (newTaskTitle.trim()) {
-      const newTask: Task = {
-        id: Date.now().toString(),
-        title: newTaskTitle.trim(),
-        completed: false,
-        priority: 'medium',
-      };
-      const updatedTasks = [newTask, ...tasks];
-      setTasks(updatedTasks);
-      saveTasks(updatedTasks);
-      setNewTaskTitle('');
-    }
+    if (!newTaskTitle.trim()) return;
+    const task: Task = {
+      id: Date.now().toString(),
+      title: newTaskTitle.trim(),
+      completed: false,
+      priority: newTaskPriority,
+      category: newTaskCategory,
+      subtasks: [],
+      createdAt: new Date().toISOString(),
+    };
+    const updated = [task, ...tasks];
+    setTasks(updated);
+    saveTasks(updated);
+    setNewTaskTitle('');
+    setNewTaskCategory('');
+    setNewTaskPriority('medium');
+    setShowAddModal(false);
   };
 
   const toggleTask = (id: string) => {
-    const updatedTasks = tasks.map(task =>
-      task.id === id ? { ...task, completed: !task.completed } : task
-    );
-    setTasks(updatedTasks);
-    saveTasks(updatedTasks);
+    const updated = tasks.map(t => t.id === id ? { ...t, completed: !t.completed } : t);
+    setTasks(updated);
+    saveTasks(updated);
   };
 
   const deleteTask = (id: string) => {
-    Alert.alert(
-      'Delete Task',
-      'Are you sure you want to delete this task?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => {
-            const updatedTasks = tasks.filter(task => task.id !== id);
-            setTasks(updatedTasks);
-            saveTasks(updatedTasks);
-          },
+    Alert.alert(strings.deleteTask, strings.deleteTaskConfirm, [
+      { text: strings.cancel, style: 'cancel' },
+      {
+        text: strings.delete,
+        style: 'destructive',
+        onPress: () => {
+          const updated = tasks.filter(t => t.id !== id);
+          setTasks(updated);
+          saveTasks(updated);
+          if (expandedTask === id) setExpandedTask(null);
         },
-      ]
+      },
+    ]);
+  };
+
+  // ─── Subtask CRUD ─────────────────────────────────────────────────────────────
+
+  const addSubtask = (taskId: string) => {
+    const text = (newSubtaskInputs[taskId] || '').trim();
+    if (!text) return;
+    const updated = tasks.map(t => {
+      if (t.id !== taskId) return t;
+      return {
+        ...t,
+        subtasks: [...(t.subtasks || []), { id: Date.now().toString(), title: text, completed: false }],
+      };
+    });
+    setTasks(updated);
+    saveTasks(updated);
+    setNewSubtaskInputs(prev => ({ ...prev, [taskId]: '' }));
+  };
+
+  const toggleSubtask = (taskId: string, subtaskId: string) => {
+    const updated = tasks.map(t => {
+      if (t.id !== taskId) return t;
+      return {
+        ...t,
+        subtasks: (t.subtasks || []).map(s => s.id === subtaskId ? { ...s, completed: !s.completed } : s),
+      };
+    });
+    setTasks(updated);
+    saveTasks(updated);
+  };
+
+  const deleteSubtask = (taskId: string, subtaskId: string) => {
+    const updated = tasks.map(t => {
+      if (t.id !== taskId) return t;
+      return { ...t, subtasks: (t.subtasks || []).filter(s => s.id !== subtaskId) };
+    });
+    setTasks(updated);
+    saveTasks(updated);
+  };
+
+  const addCategory = () => {
+    const cat = newCategoryInput.trim();
+    if (cat && !taskCategories.includes(cat)) {
+      setTaskCategories(prev => [...prev, cat]);
+      setNewCategoryInput('');
+      setShowCatModal(false);
+    }
+  };
+
+  // ─── Computed ─────────────────────────────────────────────────────────────────
+
+  const filteredTasks = filterCategory
+    ? tasks.filter(t => t.category === filterCategory)
+    : tasks;
+
+  const activeTasks = filteredTasks.filter(t => !t.completed);
+  const completedTasks = filteredTasks.filter(t => t.completed);
+
+  // ─── Render Task ──────────────────────────────────────────────────────────────
+
+  const renderTask = (task: Task) => {
+    const isExpanded = expandedTask === task.id;
+    const subtasks = task.subtasks || [];
+    const completedSubCount = subtasks.filter(s => s.completed).length;
+    const priorityConf = PRIORITY_CONFIG[task.priority];
+    const subInput = newSubtaskInputs[task.id] || '';
+
+    return (
+      <View key={task.id} style={[styles.taskCard, { backgroundColor: theme.card }]}>
+        {/* Priority bar */}
+        <View style={[styles.priorityBar, { backgroundColor: priorityConf.color }]} />
+
+        <View style={styles.taskRow}>
+          {/* Checkbox */}
+          <TouchableOpacity onPress={() => toggleTask(task.id)} style={{ marginRight: 12 }}>
+            <MaterialIcons
+              name={task.completed ? 'check-circle' : 'radio-button-unchecked'}
+              size={24}
+              color={task.completed ? theme.primary : theme.subtext}
+            />
+          </TouchableOpacity>
+
+          {/* Title & Meta */}
+          <TouchableOpacity style={{ flex: 1 }} onPress={() => setExpandedTask(isExpanded ? null : task.id)}>
+            <Text style={[styles.taskTitle, { color: theme.text }, task.completed && styles.completedText]} numberOfLines={2}>
+              {task.title}
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 8, marginTop: 4, flexWrap: 'wrap' }}>
+              <View style={[styles.badge, { backgroundColor: `${priorityConf.color}20` }]}>
+                <Text style={{ color: priorityConf.color, fontSize: 10, fontWeight: '600' }}>
+                  {language === 'tr' ? priorityConf.label : priorityConf.labelEn}
+                </Text>
+              </View>
+              {task.category ? (
+                <View style={[styles.badge, { backgroundColor: `${theme.primary}20` }]}>
+                  <Text style={{ color: theme.primary, fontSize: 10, fontWeight: '600' }}>{task.category}</Text>
+                </View>
+              ) : null}
+              {subtasks.length > 0 && (
+                <View style={[styles.badge, { backgroundColor: `${theme.subtext}15` }]}>
+                  <Text style={{ color: theme.subtext, fontSize: 10 }}>{completedSubCount}/{subtasks.length} alt görev</Text>
+                </View>
+              )}
+            </View>
+          </TouchableOpacity>
+
+          {/* Actions */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <TouchableOpacity onPress={() => setExpandedTask(isExpanded ? null : task.id)}>
+              <MaterialIcons name={isExpanded ? 'expand-less' : 'expand-more'} size={22} color={theme.subtext} />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => deleteTask(task.id)}>
+              <Feather name="trash-2" size={16} color={theme.accent} />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Subtasks expanded */}
+        {isExpanded && (
+          <View style={[styles.subtasksContainer, { borderTopColor: theme.border }]}>
+            <Text style={[styles.subtasksLabel, { color: theme.subtext }]}>{strings.subtasks}</Text>
+            {subtasks.map(sub => (
+              <View key={sub.id} style={styles.subtaskRow}>
+                <TouchableOpacity onPress={() => toggleSubtask(task.id, sub.id)} style={{ marginRight: 8 }}>
+                  <MaterialIcons
+                    name={sub.completed ? 'check-box' : 'check-box-outline-blank'}
+                    size={18}
+                    color={sub.completed ? theme.primary : theme.subtext}
+                  />
+                </TouchableOpacity>
+                <Text style={[styles.subtaskText, { color: theme.text }, sub.completed && styles.completedText]} numberOfLines={2}>
+                  {sub.title}
+                </Text>
+                <TouchableOpacity onPress={() => deleteSubtask(task.id, sub.id)} style={{ marginLeft: 'auto' }}>
+                  <Feather name="x" size={14} color={theme.subtext} />
+                </TouchableOpacity>
+              </View>
+            ))}
+            {/* Add subtask */}
+            <View style={[styles.subtaskInputRow, { borderColor: theme.border }]}>
+              <TextInput
+                style={[styles.subtaskInput, { color: theme.text }]}
+                placeholder={strings.addSubtask}
+                placeholderTextColor={theme.subtext}
+                value={subInput}
+                onChangeText={t => setNewSubtaskInputs(prev => ({ ...prev, [task.id]: t }))}
+                onSubmitEditing={() => addSubtask(task.id)}
+                returnKeyType="done"
+              />
+              <TouchableOpacity
+                onPress={() => addSubtask(task.id)}
+                style={[styles.subtaskAddBtn, { backgroundColor: theme.primary }]}
+              >
+                <MaterialIcons name="add" size={16} color="#fff" />
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+      </View>
     );
   };
 
-  const requestAndroidCalendarPermission = async () => {
-    try {
-      const { status } = await Calendar.requestCalendarPermissionsAsync();
-      if (status === 'granted') {
-        const calendars = await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT);
-        setCalendars(calendars);
-      }
-    } catch (error) {
-      console.log('Calendar permission error:', error);
-    }
-  };
+  // ─── Add Task Modal ───────────────────────────────────────────────────────────
 
-  const addToCalendar = (task: Task) => {
-    setTaskToAdd(task);
-    setShowCalendarModal(true);
-  };
+  const renderAddModal = () => (
+    <Modal visible={showAddModal} transparent animationType="slide" onRequestClose={() => setShowAddModal(false)}>
+      <Pressable style={styles.modalOverlay} onPress={() => setShowAddModal(false)}>
+        <Pressable style={[styles.modalSheet, { backgroundColor: theme.card }]}>
+          <Text style={[styles.modalTitle, { color: theme.text }]}>{strings.addTask.replace('...', '')}</Text>
 
-  const handleCalendarSelect = async (calendar: Calendar.Calendar) => {
-    setSelectedCalendar(calendar);
-    setShowCalendarModal(false);
-    setShowDatePicker(true);
-  };
-
-  const handleDateChange = (event: any, date?: Date) => {
-    setShowDatePicker(false);
-    if (date) {
-      setSelectedDate(date);
-      setShowTimePicker(true);
-    }
-  };
-
-  const handleTimeChange = (event: any, time?: Date) => {
-    setShowTimePicker(false);
-    if (time) {
-      setSelectedTime(time);
-      saveEventToCalendar();
-    }
-  };
-
-  const saveEventToCalendar = async () => {
-    if (taskToAdd && selectedCalendar) {
-      try {
-        const startDate = new Date(selectedDate);
-        startDate.setHours(selectedTime.getHours());
-        startDate.setMinutes(selectedTime.getMinutes());
-
-        const endDate = new Date(startDate.getTime() + 3600000); // 1 hour later
-
-        const eventDetails = {
-          title: taskToAdd.title,
-          startDate,
-          endDate,
-          timeZone: 'UTC',
-          allDay: false,
-          location: '',
-          notes: 'Task from Notes App',
-          alarms: [{
-            relativeOffset: -30,
-            method: Calendar.AlarmMethod.ALERT,
-          }],
-        };
-
-        const eventId = await Calendar.createEventAsync(selectedCalendar.id, eventDetails);
-        
-        const updatedTasks = tasks.map(t =>
-          t.id === taskToAdd.id ? { ...t, calendarEventId: eventId } : t
-        );
-        setTasks(updatedTasks);
-        saveTasks(updatedTasks);
-
-        Alert.alert('Success', 'Task added to selected calendar');
-      } catch (error) {
-        Alert.alert('Error', 'Failed to add task to calendar. Please check if the calendar is available.');
-        console.log('Calendar error:', error);
-      }
-    }
-  };
-
-  const renderTask = ({ item }: { item: Task }) => (
-    <View style={[styles.taskItem, { backgroundColor: theme.card }]}>
-      <TouchableOpacity
-        style={styles.taskCheckbox}
-        onPress={() => toggleTask(item.id)}
-      >
-        <MaterialIcons
-          name={item.completed ? 'check-circle' : 'radio-button-unchecked'}
-          size={24}
-          color={item.completed ? theme.primary : theme.subtext}
-        />
-      </TouchableOpacity>
-      
-      <Text
-        style={[
-          styles.taskTitle,
-          { color: theme.text },
-          item.completed && styles.completedTask
-        ]}
-      >
-        {item.title}
-      </Text>
-
-      <View style={styles.taskActions}>
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => addToCalendar(item)}
-        >
-          <MaterialIcons 
-            name="event" 
-            size={20} 
-            color={item.calendarEventId ? theme.primary : theme.subtext} 
+          <TextInput
+            style={[styles.modalInput, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+            placeholder={strings.addTask}
+            placeholderTextColor={theme.subtext}
+            value={newTaskTitle}
+            onChangeText={setNewTaskTitle}
+            autoFocus
+            onSubmitEditing={addTask}
           />
-        </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={(e) => {
-            e.stopPropagation();
-            deleteTask(item.id);
-          }}
-        >
-          <Feather name="trash-2" size={16} color={theme.accent} />
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-
-  return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <LinearGradient colors={theme.gradient} style={styles.header}>
-        <Text style={styles.headerTitle}>Tasks</Text>
-      </LinearGradient>
-
-      <View style={[styles.inputContainer, { backgroundColor: theme.card }]}>
-        <TextInput
-          style={[styles.input, { color: theme.text }]}
-          placeholder="Add a new task..."
-          placeholderTextColor={theme.subtext}
-          value={newTaskTitle}
-          onChangeText={setNewTaskTitle}
-          onSubmitEditing={addTask}
-        />
-        <TouchableOpacity
-          style={[styles.addButton, { backgroundColor: theme.primary }]}
-          onPress={addTask}
-        >
-          <MaterialIcons name="add" size={24} color="#fff" />
-        </TouchableOpacity>
-      </View>
-
-      <FlatList
-        data={tasks}
-        renderItem={renderTask}
-        keyExtractor={item => item.id}
-        style={styles.taskList}
-      />
-
-      <Modal
-        visible={showCalendarModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowCalendarModal(false)}
-      >
-        <Pressable style={styles.modalOverlay} onPress={() => setShowCalendarModal(false)}>
-          <View style={[styles.modalContainer, { backgroundColor: theme.card }]}>
-            <Text style={[styles.modalTitle, { color: theme.text }]}>Select Calendar</Text>
-            {calendars.map(calendar => (
+          {/* Priority */}
+          <Text style={[styles.modalSectionLabel, { color: theme.subtext }]}>{strings.priority}</Text>
+          <View style={{ flexDirection: 'row', gap: 8, marginBottom: 14 }}>
+            {(['low', 'medium', 'high'] as const).map(p => (
               <TouchableOpacity
-                key={calendar.id}
-                style={styles.calendarItem}
-                onPress={() => handleCalendarSelect(calendar)}
+                key={p}
+                style={[styles.priorityBtn, { borderColor: PRIORITY_CONFIG[p].color, backgroundColor: newTaskPriority === p ? PRIORITY_CONFIG[p].color : 'transparent' }]}
+                onPress={() => setNewTaskPriority(p)}
               >
-                <Text style={[styles.calendarItemText, { color: theme.text }]}>
-                  {calendar.title}
+                <Text style={{ color: newTaskPriority === p ? '#fff' : PRIORITY_CONFIG[p].color, fontSize: 12, fontWeight: '600' }}>
+                  {language === 'tr' ? PRIORITY_CONFIG[p].label : PRIORITY_CONFIG[p].labelEn}
                 </Text>
               </TouchableOpacity>
             ))}
           </View>
+
+          {/* Category */}
+          <Text style={[styles.modalSectionLabel, { color: theme.subtext }]}>{strings.taskCategory}</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 14 }}>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <TouchableOpacity
+                style={[styles.catChip, { borderColor: theme.border, backgroundColor: newTaskCategory === '' ? theme.primary : 'transparent' }]}
+                onPress={() => setNewTaskCategory('')}
+              >
+                <Text style={{ color: newTaskCategory === '' ? '#fff' : theme.subtext, fontSize: 12 }}>
+                  {language === 'tr' ? 'Yok' : 'None'}
+                </Text>
+              </TouchableOpacity>
+              {taskCategories.map(cat => (
+                <TouchableOpacity
+                  key={cat}
+                  style={[styles.catChip, { borderColor: theme.primary, backgroundColor: newTaskCategory === cat ? theme.primary : 'transparent' }]}
+                  onPress={() => setNewTaskCategory(cat)}
+                >
+                  <Text style={{ color: newTaskCategory === cat ? '#fff' : theme.primary, fontSize: 12 }}>{cat}</Text>
+                </TouchableOpacity>
+              ))}
+              <TouchableOpacity
+                style={[styles.catChip, { borderColor: theme.primary, borderStyle: 'dashed' }]}
+                onPress={() => setShowCatModal(true)}
+              >
+                <Feather name="plus" size={12} color={theme.primary} />
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+
+          <TouchableOpacity style={[styles.addBtn, { backgroundColor: theme.primary }]} onPress={addTask}>
+            <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>{strings.save}</Text>
+          </TouchableOpacity>
         </Pressable>
-      </Modal>
+      </Pressable>
+    </Modal>
+  );
 
-      {showDatePicker && (
-        <DateTimePicker
-          value={selectedDate}
-          mode="date"
-          display="default"
-          onChange={handleDateChange}
-        />
+  // ─── Category Modal ───────────────────────────────────────────────────────────
+
+  const renderCatModal = () => (
+    <Modal visible={showCatModal} transparent animationType="fade" onRequestClose={() => setShowCatModal(false)}>
+      <Pressable style={styles.modalOverlay} onPress={() => setShowCatModal(false)}>
+        <View style={[styles.modalContainer, { backgroundColor: theme.card }]}>
+          <Text style={[styles.modalTitle, { color: theme.text }]}>{strings.addCategory}</Text>
+          <TextInput
+            style={[styles.modalInput, { color: theme.text, borderColor: theme.border, backgroundColor: theme.background }]}
+            placeholder={strings.categoryName}
+            placeholderTextColor={theme.subtext}
+            value={newCategoryInput}
+            onChangeText={setNewCategoryInput}
+            onSubmitEditing={addCategory}
+          />
+          <TouchableOpacity style={[styles.addBtn, { backgroundColor: theme.primary }]} onPress={addCategory}>
+            <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 15 }}>{strings.addCategory}</Text>
+          </TouchableOpacity>
+        </View>
+      </Pressable>
+    </Modal>
+  );
+
+  // ─── Main Render ──────────────────────────────────────────────────────────────
+
+  return (
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      {/* Header */}
+      <LinearGradient colors={theme.gradient} style={styles.header}>
+        <Text style={styles.headerTitle}>{strings.tasks}</Text>
+        <Text style={{ color: 'rgba(255,255,255,0.75)', fontSize: 13, marginTop: 4 }}>
+          {activeTasks.length} {language === 'tr' ? 'aktif görev' : 'active tasks'}
+        </Text>
+      </LinearGradient>
+
+      {/* Category filter */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.catFilter} contentContainerStyle={{ gap: 8 }}>
+        <TouchableOpacity
+          style={[styles.catChip, { backgroundColor: !filterCategory ? theme.primary : theme.card, borderColor: theme.primary }]}
+          onPress={() => setFilterCategory(null)}
+        >
+          <Text style={{ color: !filterCategory ? '#fff' : theme.primary, fontSize: 12, fontWeight: '500' }}>
+            {language === 'tr' ? 'Tümü' : 'All'}
+          </Text>
+        </TouchableOpacity>
+        {taskCategories.map(cat => (
+          <TouchableOpacity
+            key={cat}
+            style={[styles.catChip, { backgroundColor: filterCategory === cat ? theme.primary : theme.card, borderColor: theme.primary }]}
+            onPress={() => setFilterCategory(filterCategory === cat ? null : cat)}
+          >
+            <Text style={{ color: filterCategory === cat ? '#fff' : theme.primary, fontSize: 12, fontWeight: '500' }}>{cat}</Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
+      {/* Task list */}
+      {filteredTasks.length === 0 ? (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <MaterialIcons name="check-circle-outline" size={72} color={`${theme.border}`} />
+          <Text style={{ color: theme.subtext, marginTop: 16, fontSize: 15 }}>{strings.noTasks}</Text>
+        </View>
+      ) : (
+        <ScrollView style={styles.list} contentContainerStyle={{ paddingBottom: 120 }}>
+          {/* Active tasks */}
+          {activeTasks.length > 0 && (
+            <>
+              <Text style={[styles.sectionHeader, { color: theme.subtext }]}>
+                {language === 'tr' ? 'Aktif' : 'Active'} ({activeTasks.length})
+              </Text>
+              {activeTasks.map(renderTask)}
+            </>
+          )}
+          {/* Completed tasks */}
+          {completedTasks.length > 0 && (
+            <>
+              <Text style={[styles.sectionHeader, { color: theme.subtext, marginTop: 12 }]}>
+                {language === 'tr' ? 'Tamamlananlar' : 'Completed'} ({completedTasks.length})
+              </Text>
+              {completedTasks.map(renderTask)}
+            </>
+          )}
+        </ScrollView>
       )}
 
-      {showTimePicker && (
-        <DateTimePicker
-          value={selectedTime}
-          mode="time"
-          display="default"
-          onChange={handleTimeChange}
-        />
-      )}
+      {/* FAB */}
+      <TouchableOpacity style={[styles.fab, { shadowColor: theme.primary }]} onPress={() => setShowAddModal(true)}>
+        <LinearGradient colors={theme.gradient} style={styles.fabGradient}>
+          <MaterialIcons name="add" size={28} color="#fff" />
+        </LinearGradient>
+      </TouchableOpacity>
+
+      {renderAddModal()}
+      {renderCatModal()}
     </View>
   );
 };
 
+// ─── Styles ───────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  container: { flex: 1 },
   header: {
     padding: 20,
     paddingTop: Platform.OS === 'ios' ? 60 : 40,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
+    paddingBottom: 20,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
   },
-  headerTitle: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#fff',
-    letterSpacing: 1,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    margin: 16,
-    marginTop: -25,
-    padding: 8,
-    borderRadius: 20,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-  },
-  input: {
-    flex: 1,
-    fontSize: 16,
-    padding: 8,
-  },
-  addButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 8,
-  },
-  taskList: {
-    padding: 16,
-  },
-  taskItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    marginBottom: 12,
-    borderRadius: 12,
+  headerTitle: { fontSize: 30, fontWeight: 'bold', color: '#fff' },
+  catFilter: { paddingHorizontal: 16, paddingVertical: 12, flexGrow: 0 },
+  list: { flex: 1, paddingHorizontal: 16 },
+  sectionHeader: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8, marginTop: 4 },
+  taskCard: {
+    borderRadius: 16,
+    marginBottom: 10,
+    overflow: 'hidden',
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
   },
-  taskCheckbox: {
-    marginRight: 12,
-  },
-  taskTitle: {
-    flex: 1,
-    fontSize: 16,
-  },
-  completedTask: {
-    textDecorationLine: 'line-through',
-    opacity: 0.6,
-  },
-  deleteButton: {
-    padding: 4,
-  },
-  calendarButton: {
-    padding: 4,
-    marginRight: 8,
-  },
-  taskActions: {
+  priorityBar: { height: 3, width: '100%' },
+  taskRow: { flexDirection: 'row', alignItems: 'flex-start', padding: 14 },
+  taskTitle: { fontSize: 15, fontWeight: '600', lineHeight: 21 },
+  completedText: { textDecorationLine: 'line-through', opacity: 0.5 },
+  badge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
+  subtasksContainer: { paddingHorizontal: 14, paddingBottom: 14, borderTopWidth: 1 },
+  subtasksLabel: { fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.8, marginTop: 10, marginBottom: 8 },
+  subtaskRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 6 },
+  subtaskText: { flex: 1, fontSize: 14 },
+  subtaskInputRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: 10,
+    marginTop: 8,
+    overflow: 'hidden',
   },
-  actionButton: {
-    padding: 4,
-    marginLeft: 8,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContainer: {
-    width: '80%',
+  subtaskInput: { flex: 1, padding: 9, fontSize: 14 },
+  subtaskAddBtn: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
+  fab: { position: 'absolute', bottom: 78, right: 20, width: 58, height: 58, borderRadius: 29, elevation: 6, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.35, shadowRadius: 5 },
+  fabGradient: { flex: 1, borderRadius: 29, justifyContent: 'center', alignItems: 'center' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end' },
+  modalSheet: {
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
     padding: 24,
-    borderRadius: 12,
-    elevation: 5,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+    elevation: 10,
   },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  calendarItem: {
-    padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  calendarItemText: {
-    fontSize: 16,
-  },
+  modalContainer: { margin: 32, padding: 24, borderRadius: 20, elevation: 8 },
+  modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 16, textAlign: 'center' },
+  modalSectionLabel: { fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 },
+  modalInput: { padding: 12, borderWidth: 1, borderRadius: 12, fontSize: 15, marginBottom: 14 },
+  priorityBtn: { flex: 1, padding: 10, borderRadius: 10, borderWidth: 1.5, alignItems: 'center' },
+  catChip: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 16, borderWidth: 1 },
+  addBtn: { padding: 14, borderRadius: 14, alignItems: 'center', marginTop: 4 },
 });
 
 export default TaskScreen;
