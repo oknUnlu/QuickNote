@@ -50,7 +50,9 @@
             "ndkVersion": "27.1.12297006"
           }
         }
-      ]
+      ],
+      "expo-font",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true
