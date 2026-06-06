@@ -22,6 +22,7 @@ import { translations, Language } from '../translations/translations';
 import * as FileSystem from 'expo-file-system';
 import AddNote from './AddNote';
 import { createStackNavigator } from '@react-navigation/stack';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Constants from 'expo-constants';
 
 // AdMob is a native module that does NOT exist in Expo Go. Only load it in
@@ -114,6 +115,7 @@ const NOTE_TEMPLATES = [
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 const NotesApp = () => {
+  const insets = useSafeAreaInsets();
   const [notes, setNotes] = useState<Note[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [categories, setCategories] = useState<string[]>(['Kişisel', 'İş', 'Alışveriş', 'Fikirler']);
@@ -845,8 +847,8 @@ const NotesApp = () => {
           borderTopWidth: 1,
           position: 'absolute',
           bottom: 0,
-          height: 60,
-          paddingBottom: 8,
+          height: 60 + insets.bottom,
+          paddingBottom: 8 + insets.bottom,
           elevation: 0,
           shadowOpacity: 0,
         },
