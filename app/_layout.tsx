@@ -807,7 +807,7 @@ const NotesApp = () => {
             {/* FAB */}
             {activeView === 'notes' && (
               <TouchableOpacity
-                style={styles.fab}
+                style={[styles.fab, { bottom: 80 + insets.bottom }]}
                 onPress={() => { setEditingNote(null); setShowTemplateModal(true); }}
               >
                 <LinearGradient colors={theme.gradient} style={styles.fabGradient}>
