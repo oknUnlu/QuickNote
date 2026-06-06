@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 1080px;
+    height: 1920px;
+    background: linear-gradient(160deg, #030E1E 0%, #0C1A2E 50%, #0C4A6E 100%);
+    font-family: -apple-system, 'Segoe UI', sans-serif;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .top-label {
+    margin-top: 80px;
+    background: rgba(56,189,248,0.15);
+    border: 1.5px solid rgba(56,189,248,0.3);
+    border-radius: 30px;
+    padding: 10px 28px;
+    color: #7DD3FC;
+    font-size: 26px;
+    font-weight: 600;
+  }
+
+  .headline {
+    margin-top: 40px;
+    text-align: center;
+    color: #fff;
+    font-size: 68px;
+    font-weight: 800;
+    line-height: 1.15;
+    padding: 0 60px;
+  }
+  .headline em {
+    font-style: normal;
+    background: linear-gradient(90deg, #38BDF8, #7DD3FC);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  /* Big feature grid */
+  .feature-grid {
+    margin-top: 60px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    padding: 0 60px;
+    width: 100%;
+  }
+  .feat-card {
+    background: rgba(255,255,255,0.05);
+    border: 1.5px solid rgba(56,189,248,0.2);
+    border-radius: 28px;
+    padding: 30px 28px;
+    position: relative;
+    overflow: hidden;
+  }
+  .feat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: radial-gradient(circle at 0% 0%, rgba(56,189,248,0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .feat-emoji {
+    font-size: 44px;
+    margin-bottom: 16px;
+    display: block;
+  }
+  .feat-title {
+    color: #fff;
+    font-size: 26px;
+    font-weight: 800;
+    margin-bottom: 8px;
+    line-height: 1.2;
+  }
+  .feat-desc {
+    color: rgba(255,255,255,0.55);
+    font-size: 20px;
+    line-height: 1.5;
+  }
+
+  /* Wide card */
+  .feat-card.wide {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: 28px;
+  }
+  .feat-card.wide .feat-emoji { margin-bottom: 0; font-size: 52px; }
+  .feat-card.wide .feat-content { flex: 1; }
+
+  /* Phone preview area */
+  .preview-section {
+    margin-top: 50px;
+    width: 100%;
+    padding: 0 60px;
+  }
+  .preview-row {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+  }
+  .mini-phone {
+    width: 180px;
+    height: 360px;
+    background: #0C1A2E;
+    border-radius: 30px;
+    border: 4px solid #0C4A6E;
+    overflow: hidden;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.5);
+    position: relative;
+  }
+  .mini-notch {
+    position: absolute; top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 60px; height: 12px;
+    background: #0C1A2E;
+    border-radius: 0 0 8px 8px;
+    z-index: 10;
+  }
+  .mp-header {
+    padding: 20px 10px 10px;
+    font-size: 11px;
+    font-weight: 800;
+    color: #fff;
+  }
+  .mp-card {
+    background: rgba(255,255,255,0.06);
+    border-radius: 10px;
+    padding: 8px;
+    margin: 0 8px 6px;
+  }
+  .mp-title { color: #F1F5F9; font-size: 10px; font-weight: 700; margin-bottom: 3px; }
+  .mp-body { color: #94A3B8; font-size: 8px; line-height: 1.4; }
+  .mp-tag {
+    display: inline-block;
+    border-radius: 6px;
+    padding: 2px 6px;
+    font-size: 7px;
+    font-weight: 600;
+    margin-top: 4px;
+  }
+
+  .mp-fav { color: #FCD34D; font-size: 9px; margin-bottom: 3px; }
+
+  /* Checklist phone */
+  .mp-check-item {
+    display: flex; align-items: center; gap: 6px;
+    padding: 5px 8px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    font-size: 9px;
+  }
+  .mp-check-icon { font-size: 11px; }
+
+  /* Settings phone */
+  .mp-setting-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 10px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    font-size: 9px;
+    color: #94A3B8;
+  }
+  .mp-toggle {
+    width: 24px; height: 12px;
+    border-radius: 6px;
+    background: #38BDF8;
+    position: relative;
+  }
+  .mp-toggle::after {
+    content: '';
+    position: absolute;
+    right: 2px; top: 2px;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #fff;
+  }
+  .mp-toggle.off { background: #334155; }
+  .mp-toggle.off::after { right: auto; left: 2px; }
+
+  /* Theme phone */
+  .mp-swatch-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    padding: 8px;
+  }
+  .mp-swatch {
+    height: 28px;
+    border-radius: 8px;
+  }
+
+  /* Bottom stats */
+  .stats-row {
+    display: flex;
+    gap: 24px;
+    margin-top: 48px;
+    padding: 0 60px;
+    width: 100%;
+    justify-content: center;
+  }
+  .stat-card {
+    flex: 1;
+    background: rgba(255,255,255,0.05);
+    border: 1.5px solid rgba(56,189,248,0.2);
+    border-radius: 24px;
+    padding: 24px 20px;
+    text-align: center;
+  }
+  .stat-number {
+    font-size: 52px;
+    font-weight: 900;
+    background: linear-gradient(90deg, #38BDF8, #7DD3FC);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+  .stat-label { color: rgba(255,255,255,0.6); font-size: 22px; font-weight: 500; }
+</style>
+</head>
+<body>
+
+  <div class="top-label">⚡ Özellikler</div>
+
+  <div class="headline">
+    Her ihtiyacın<br>için <em>hazır</em>
+  </div>
+
+  <!-- Features grid -->
+  <div class="feature-grid">
+    <div class="feat-card">
+      <span class="feat-emoji">📝</span>
+      <div class="feat-title">Zengin metin editörü</div>
+      <div class="feat-desc">Kalın, italik, altı çizili biçimlendirme</div>
+    </div>
+    <div class="feat-card">
+      <span class="feat-emoji">☑️</span>
+      <div class="feat-title">Checklist modu</div>
+      <div class="feat-desc">Yapılacakları kolayca işaretle</div>
+    </div>
+    <div class="feat-card">
+      <span class="feat-emoji">🏷️</span>
+      <div class="feat-title">Etiket & Kategori</div>
+      <div class="feat-desc">Notları düzenli tut</div>
+    </div>
+    <div class="feat-card">
+      <span class="feat-emoji">⭐</span>
+      <div class="feat-title">Favoriler</div>
+      <div class="feat-desc">Önemli notlara hızlı eriş</div>
+    </div>
+    <div class="feat-card wide">
+      <span class="feat-emoji">🌙</span>
+      <div class="feat-content">
+        <div class="feat-title">Koyu mod & 8 tema</div>
+        <div class="feat-desc">Gözlerin için koyu mod ve mor, pembe, yeşil, sarı, mavi ve daha fazlası...</div>
+      </div>
+    </div>
+    <div class="feat-card">
+      <span class="feat-emoji">🖼️</span>
+      <div class="feat-title">Fotoğraf desteği</div>
+      <div class="feat-desc">Notlara görsel ekle</div>
+    </div>
+    <div class="feat-card">
+      <span class="feat-emoji">🔍</span>
+      <div class="feat-title">Hızlı arama</div>
+      <div class="feat-desc">Anında bul</div>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-number">8</div>
+      <div class="stat-label">Renk Teması</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number">2</div>
+      <div class="stat-label">Mod (☀️🌙)</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number">∞</div>
+      <div class="stat-label">Not Kapasitesi</div>
+    </div>
+  </div>
+
+  <!-- Mini phones row -->
+  <div class="preview-section">
+    <div class="preview-row">
+      <!-- Notes phone -->
+      <div class="mini-phone">
+        <div class="mini-notch"></div>
+        <div class="mp-header" style="background: linear-gradient(135deg,#4F46E5,#3730A3);">✦ QuickNote</div>
+        <div class="mp-card">
+          <div class="mp-fav">★</div>
+          <div class="mp-title">Proje Fikirleri</div>
+          <div class="mp-body">UI konsept tasarımları...</div>
+          <div class="mp-tag" style="background:rgba(99,102,241,0.2);color:#818CF8">İş</div>
+        </div>
+        <div class="mp-card">
+          <div class="mp-fav" style="color:#475569">☆</div>
+          <div class="mp-title">Alışveriş</div>
+          <div class="mp-body">Ekmek, süt, peynir...</div>
+          <div class="mp-tag" style="background:rgba(16,185,129,0.2);color:#34D399">Kişisel</div>
+        </div>
+        <div class="mp-card">
+          <div class="mp-fav">★</div>
+          <div class="mp-title">Kitap Notları</div>
+          <div class="mp-body">Atomik Alışkanlıklar...</div>
+          <div class="mp-tag" style="background:rgba(245,158,11,0.2);color:#FCD34D">Okuma</div>
+        </div>
+      </div>
+
+      <!-- Checklist phone -->
+      <div class="mini-phone">
+        <div class="mini-notch"></div>
+        <div class="mp-header" style="background: linear-gradient(135deg,#059669,#047857);">☑ Haftalık Plan</div>
+        <div style="padding: 6px 8px;">
+          <div style="background:#334155;height:4px;border-radius:4px;margin-bottom:4px;overflow:hidden;"><div style="background:#34D399;height:100%;width:60%;border-radius:4px;"></div></div>
+          <div style="color:#34D399;font-size:8px;font-weight:600;margin-bottom:8px;">3/5 tamamlandı</div>
+        </div>
+        <div class="mp-check-item">
+          <span class="mp-check-icon" style="color:#34D399">☑</span>
+          <span style="color:#475569;text-decoration:line-through;font-size:9px;">E-postaları yanıtla</span>
+        </div>
+        <div class="mp-check-item">
+          <span class="mp-check-icon" style="color:#34D399">☑</span>
+          <span style="color:#475569;text-decoration:line-through;font-size:9px;">Haftalık rapor</span>
+        </div>
+        <div class="mp-check-item">
+          <span class="mp-check-icon" style="color:#475569">☐</span>
+          <span style="color:#F1F5F9;font-size:9px;">Proje sunumu</span>
+        </div>
+        <div class="mp-check-item">
+          <span class="mp-check-icon" style="color:#475569">☐</span>
+          <span style="color:#F1F5F9;font-size:9px;">Code review</span>
+        </div>
+        <div class="mp-check-item" style="color:#34D399;font-size:9px;">
+          <span style="font-size:14px;">⊕</span>
+          Yeni madde...
+        </div>
+      </div>
+
+      <!-- Themes phone -->
+      <div class="mini-phone">
+        <div class="mini-notch"></div>
+        <div class="mp-header" style="background: linear-gradient(135deg,#D97706,#B45309);">🎨 Temalar</div>
+        <div class="mp-swatch-grid">
+          <div class="mp-swatch" style="background:linear-gradient(135deg,#6366F1,#4F46E5)"></div>
+          <div class="mp-swatch" style="background:linear-gradient(135deg,#EC4899,#DB2777)"></div>
+          <div class="mp-swatch" style="background:linear-gradient(135deg,#10B981,#059669)"></div>
+          <div class="mp-swatch" style="background:linear-gradient(135deg,#F59E0B,#D97706);border:2px solid #FCD34D"></div>
+          <div class="mp-swatch" style="background:linear-gradient(135deg,#0EA5E9,#0284C7)"></div>
+          <div class="mp-swatch" style="background:linear-gradient(135deg,#8B5CF6,#7C3AED)"></div>
+          <div class="mp-swatch" style="background:linear-gradient(135deg,#D946EF,#C026D3)"></div>
+          <div class="mp-swatch" style="background:linear-gradient(135deg,#84CC16,#65A30D)"></div>
+        </div>
+        <div style="padding: 8px 10px;">
+          <div class="mp-setting-row">
+            <span>Koyu Mod</span>
+            <div class="mp-toggle off"></div>
+          </div>
+          <div class="mp-setting-row">
+            <span>Bildirimler</span>
+            <div class="mp-toggle"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

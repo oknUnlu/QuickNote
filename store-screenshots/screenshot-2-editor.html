@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 1080px;
+    height: 1920px;
+    background: linear-gradient(160deg, #0F172A 0%, #1E1B4B 60%, #312E81 100%);
+    font-family: -apple-system, 'Segoe UI', sans-serif;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .top-label {
+    margin-top: 80px;
+    background: rgba(129,140,248,0.2);
+    border: 1.5px solid rgba(129,140,248,0.4);
+    border-radius: 30px;
+    padding: 10px 28px;
+    color: #A5B4FC;
+    font-size: 26px;
+    font-weight: 600;
+  }
+
+  .headline {
+    margin-top: 40px;
+    text-align: center;
+    color: #fff;
+    font-size: 68px;
+    font-weight: 800;
+    line-height: 1.15;
+    padding: 0 60px;
+  }
+  .headline em {
+    font-style: normal;
+    background: linear-gradient(90deg, #818CF8, #C084FC);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .sub {
+    margin-top: 24px;
+    color: rgba(255,255,255,0.65);
+    font-size: 32px;
+    text-align: center;
+    padding: 0 80px;
+    line-height: 1.5;
+  }
+
+  /* Phone */
+  .phone-wrap {
+    margin-top: 60px;
+    position: relative;
+    width: 500px;
+    height: 1040px;
+  }
+  .phone {
+    width: 500px;
+    height: 1000px;
+    background: #F8FAFC;
+    border-radius: 60px;
+    border: 8px solid #CBD5E1;
+    box-shadow: 0 40px 120px rgba(0,0,0,0.5), 0 0 0 2px rgba(255,255,255,0.1);
+    overflow: hidden;
+    position: relative;
+  }
+  .notch {
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 160px; height: 36px;
+    background: #F8FAFC;
+    border-radius: 0 0 24px 24px;
+    z-index: 10;
+  }
+  .status-bar {
+    display: flex;
+    justify-content: space-between;
+    padding: 14px 28px 0;
+    color: #64748B;
+    font-size: 20px;
+    font-weight: 600;
+  }
+
+  /* Header gradient */
+  .header {
+    background: linear-gradient(135deg, #6366F1, #4F46E5);
+    padding: 16px 20px 14px;
+    margin-top: 6px;
+  }
+  .header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+  }
+  .back-btn {
+    width: 36px; height: 36px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 18px;
+  }
+  .header-title { color: #fff; font-size: 22px; font-weight: 700; }
+  .save-btn {
+    background: rgba(255,255,255,0.25);
+    border-radius: 20px;
+    padding: 7px 18px;
+    color: #fff;
+    font-size: 16px;
+    font-weight: 700;
+  }
+
+  /* Mode toggle */
+  .mode-toggle {
+    display: flex;
+    background: rgba(0,0,0,0.2);
+    border-radius: 20px;
+    padding: 3px;
+    align-self: center;
+    width: fit-content;
+    margin: 0 auto;
+  }
+  .mode-btn {
+    padding: 7px 20px;
+    border-radius: 16px;
+    color: rgba(255,255,255,0.7);
+    font-size: 15px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .mode-btn.active {
+    background: #fff;
+    color: #4F46E5;
+    font-weight: 700;
+  }
+
+  /* Content */
+  .scroll-content {
+    padding: 14px;
+    flex: 1;
+    overflow: hidden;
+  }
+  .editor-card {
+    background: #fff;
+    border-radius: 20px;
+    padding: 16px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  }
+
+  .title-input {
+    font-size: 22px;
+    font-weight: 800;
+    color: #1E293B;
+    border-bottom: 1px solid #E2E8F0;
+    padding-bottom: 12px;
+    margin-bottom: 12px;
+  }
+
+  .content-box {
+    border: 1.5px solid #E2E8F0;
+    border-radius: 14px;
+    overflow: hidden;
+    margin-bottom: 14px;
+  }
+  .content-text {
+    padding: 12px;
+    font-size: 15px;
+    color: #475569;
+    line-height: 1.7;
+    min-height: 110px;
+  }
+  .format-bar {
+    border-top: 1px solid #E2E8F0;
+    padding: 8px 10px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    background: #F8FAFC;
+  }
+  .fmt-btn {
+    width: 36px; height: 36px;
+    border: 1.5px solid #E2E8F0;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    color: #64748B;
+    background: #fff;
+  }
+  .fmt-btn.active {
+    background: rgba(99,102,241,0.1);
+    border-color: #6366F1;
+    color: #6366F1;
+  }
+
+  /* Category */
+  .section-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #94A3B8;
+    margin-bottom: 8px;
+  }
+  .cat-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+  .cat-chip {
+    padding: 7px 16px;
+    border-radius: 16px;
+    font-size: 13px;
+    font-weight: 600;
+    border: 1.5px solid #6366F1;
+  }
+  .cat-chip.active {
+    background: #6366F1;
+    color: #fff;
+  }
+  .cat-chip.inactive {
+    background: rgba(99,102,241,0.1);
+    color: #6366F1;
+  }
+
+  /* Tags */
+  .tag-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+  }
+  .tag {
+    display: flex; align-items: center; gap: 4px;
+    background: rgba(99,102,241,0.1);
+    border: 1px solid #6366F1;
+    border-radius: 12px;
+    padding: 4px 10px;
+    font-size: 12px; font-weight: 600; color: #6366F1;
+  }
+
+  /* Image area */
+  .image-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #6366F1;
+    color: #fff;
+    padding: 10px 18px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+    margin-top: 8px;
+  }
+
+  /* Feature bullets */
+  .features-section {
+    margin-top: 48px;
+    width: 100%;
+    padding: 0 70px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .feat-row {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+  .feat-icon {
+    width: 60px; height: 60px;
+    background: rgba(129,140,248,0.2);
+    border: 1.5px solid rgba(129,140,248,0.4);
+    border-radius: 16px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px;
+  }
+  .feat-text { color: #fff; font-size: 28px; font-weight: 600; }
+  .feat-sub { color: rgba(255,255,255,0.55); font-size: 22px; margin-top: 2px; }
+</style>
+</head>
+<body>
+
+  <div class="top-label">✏️ Not Düzenleyici</div>
+
+  <div class="headline">
+    Güçlü düzenleme<br><em>özellikleri</em>
+  </div>
+  <div class="sub">Metin biçimlendirme, kategoriler ve etiketler</div>
+
+  <!-- Phone -->
+  <div class="phone-wrap">
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="status-bar">
+        <span>9:41</span>
+        <span>▲▲▲ 🔋</span>
+      </div>
+
+      <div class="header">
+        <div class="header-row">
+          <div class="back-btn">←</div>
+          <div class="header-title">Notu Düzenle</div>
+          <div class="save-btn">Kaydet</div>
+        </div>
+        <div class="mode-toggle">
+          <div class="mode-btn active">📝 Metin</div>
+          <div class="mode-btn">☑ Liste</div>
+        </div>
+      </div>
+
+      <div class="scroll-content">
+        <div class="editor-card">
+
+          <div class="title-input">Proje Fikirleri</div>
+
+          <div class="content-box">
+            <div class="content-text">
+              Yeni uygulama için <strong>UI konsept</strong> tasarımları yapılacak. <em>Kullanıcı araştırması</em> önce tamamlanmalı. Renk paleti için <span style="text-decoration:underline">mor ve indigo</span> tonları uygun görünüyor.
+            </div>
+            <div class="format-bar">
+              <div class="fmt-btn active"><b>B</b></div>
+              <div class="fmt-btn active"><i>I</i></div>
+              <div class="fmt-btn"><u>U</u></div>
+            </div>
+          </div>
+
+          <div class="section-label">Kategori</div>
+          <div class="cat-row">
+            <div class="cat-chip active">İş</div>
+            <div class="cat-chip inactive">Kişisel</div>
+            <div class="cat-chip inactive">Okuma</div>
+            <div class="cat-chip inactive">Fikir</div>
+          </div>
+
+          <div class="section-label">Etiketler</div>
+          <div class="tag-row">
+            <div class="tag">#tasarım ✕</div>
+            <div class="tag">#ui ✕</div>
+            <div class="tag">#mobil ✕</div>
+          </div>
+
+          <div class="image-btn">🖼 Fotoğraf Ekle</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="features-section">
+    <div class="feat-row">
+      <div class="feat-icon">✏️</div>
+      <div>
+        <div class="feat-text">Zengin metin editörü</div>
+        <div class="feat-sub">Kalın, italik, altı çizili</div>
+      </div>
+    </div>
+    <div class="feat-row">
+      <div class="feat-icon">🏷</div>
+      <div>
+        <div class="feat-text">Etiket ve kategoriler</div>
+        <div class="feat-sub">İstediğin gibi organize et</div>
+      </div>
+    </div>
+    <div class="feat-row">
+      <div class="feat-icon">🖼</div>
+      <div>
+        <div class="feat-text">Fotoğraf desteği</div>
+        <div class="feat-sub">Notlara görsel ekle</div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

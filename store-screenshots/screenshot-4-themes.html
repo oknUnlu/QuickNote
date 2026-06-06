@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 1080px;
+    height: 1920px;
+    background: linear-gradient(160deg, #1C1200 0%, #2D1F00 50%, #3D2800 100%);
+    font-family: -apple-system, 'Segoe UI', sans-serif;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .top-label {
+    margin-top: 80px;
+    background: rgba(252,211,77,0.15);
+    border: 1.5px solid rgba(252,211,77,0.35);
+    border-radius: 30px;
+    padding: 10px 28px;
+    color: #FCD34D;
+    font-size: 26px;
+    font-weight: 600;
+  }
+
+  .headline {
+    margin-top: 40px;
+    text-align: center;
+    color: #fff;
+    font-size: 68px;
+    font-weight: 800;
+    line-height: 1.15;
+    padding: 0 60px;
+  }
+  .headline em {
+    font-style: normal;
+    background: linear-gradient(90deg, #FCD34D, #F59E0B);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .sub {
+    margin-top: 24px;
+    color: rgba(255,255,255,0.65);
+    font-size: 32px;
+    text-align: center;
+    padding: 0 80px;
+    line-height: 1.5;
+  }
+
+  /* Theme swatches */
+  .swatches-row {
+    display: flex;
+    gap: 14px;
+    margin-top: 48px;
+    align-items: center;
+    justify-content: center;
+  }
+  .swatch {
+    width: 52px; height: 52px;
+    border-radius: 50%;
+    border: 3px solid rgba(255,255,255,0.2);
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .swatch.selected::after {
+    content: '✓';
+    color: #fff;
+    font-weight: 800;
+    font-size: 18px;
+  }
+  .swatch.large { width: 64px; height: 64px; border-width: 3px; border-color: rgba(255,255,255,0.5); }
+
+  /* Phone pair */
+  .phones-row {
+    display: flex;
+    gap: 28px;
+    margin-top: 40px;
+    align-items: flex-start;
+    justify-content: center;
+  }
+  .phone {
+    width: 220px;
+    height: 440px;
+    border-radius: 36px;
+    border: 5px solid;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    position: relative;
+    flex-shrink: 0;
+  }
+  .phone.light { background: #FFFBEB; border-color: #FDE68A; }
+  .phone.dark { background: #1C1200; border-color: #44300A; }
+  .phone-notch {
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 80px; height: 16px;
+    border-radius: 0 0 12px 12px;
+    z-index: 10;
+  }
+  .phone.light .phone-notch { background: #FFFBEB; }
+  .phone.dark .phone-notch { background: #1C1200; }
+
+  /* Light phone content */
+  .ph-header-light {
+    background: linear-gradient(135deg, #F59E0B, #D97706);
+    padding: 22px 12px 12px;
+  }
+  .ph-title-light {
+    color: #fff;
+    font-size: 14px;
+    font-weight: 800;
+    margin-bottom: 8px;
+  }
+  .ph-search-light {
+    background: rgba(255,255,255,0.25);
+    border-radius: 10px;
+    padding: 6px 10px;
+    color: rgba(255,255,255,0.8);
+    font-size: 11px;
+    display: flex; gap: 6px;
+  }
+  .ph-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 8px; }
+  .ph-card-light {
+    background: #fff;
+    border-radius: 12px;
+    padding: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+  .ph-star-light { color: #F59E0B; font-size: 10px; margin-bottom: 4px; }
+  .ph-card-title-light { color: #78350F; font-size: 10px; font-weight: 700; margin-bottom: 3px; }
+  .ph-card-body-light { color: #B45309; font-size: 8px; line-height: 1.4; margin-bottom: 4px; }
+  .ph-tag-light {
+    display: inline-block;
+    background: rgba(245,158,11,0.15);
+    color: #F59E0B;
+    font-size: 8px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 6px;
+  }
+
+  /* Dark phone content */
+  .ph-header-dark {
+    background: linear-gradient(135deg, #D97706, #B45309);
+    padding: 22px 12px 12px;
+  }
+  .ph-title-dark {
+    color: #fff;
+    font-size: 14px;
+    font-weight: 800;
+    margin-bottom: 8px;
+  }
+  .ph-search-dark {
+    background: rgba(0,0,0,0.25);
+    border-radius: 10px;
+    padding: 6px 10px;
+    color: rgba(255,255,255,0.7);
+    font-size: 11px;
+    display: flex; gap: 6px;
+  }
+  .ph-card-dark {
+    background: #2D2000;
+    border-radius: 12px;
+    padding: 8px;
+  }
+  .ph-star-dark { color: #FCD34D; font-size: 10px; margin-bottom: 4px; }
+  .ph-card-title-dark { color: #FFFBEB; font-size: 10px; font-weight: 700; margin-bottom: 3px; }
+  .ph-card-body-dark { color: #FDE68A; font-size: 8px; line-height: 1.4; margin-bottom: 4px; }
+  .ph-tag-dark {
+    display: inline-block;
+    background: rgba(252,211,77,0.15);
+    color: #FCD34D;
+    font-size: 8px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 6px;
+  }
+
+  .phone-label {
+    text-align: center;
+    margin-top: 12px;
+    font-size: 22px;
+    font-weight: 600;
+  }
+  .label-light { color: #FCD34D; }
+  .label-dark { color: rgba(255,255,255,0.5); }
+
+  /* Center phone (bigger, featured) */
+  .phone-center {
+    width: 240px;
+    height: 480px;
+    border-radius: 40px;
+    border: 6px solid;
+    overflow: hidden;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.6), 0 0 0 2px rgba(252,211,77,0.2);
+    position: relative;
+    flex-shrink: 0;
+    margin-top: -20px;
+  }
+
+  /* All themes row */
+  .theme-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-top: 56px;
+    padding: 0 60px;
+    width: 100%;
+  }
+  .theme-card {
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    position: relative;
+  }
+  .theme-header {
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: 0.5px;
+  }
+  .theme-body {
+    height: 80px;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .theme-note {
+    height: 24px;
+    border-radius: 6px;
+  }
+  .theme-note-sm {
+    height: 16px;
+    border-radius: 4px;
+    width: 70%;
+  }
+
+  /* Bottom message */
+  .bottom-msg {
+    margin-top: 40px;
+    text-align: center;
+    color: rgba(255,255,255,0.6);
+    font-size: 28px;
+    padding: 0 80px;
+  }
+  .bottom-msg strong { color: #FCD34D; font-weight: 700; }
+</style>
+</head>
+<body>
+
+  <div class="top-label">🎨 Temalar</div>
+
+  <div class="headline">
+    Kendi tarzında<br><em>özelleştir</em>
+  </div>
+  <div class="sub">8 renk teması · Açık ve koyu mod</div>
+
+  <!-- Swatches -->
+  <div class="swatches-row">
+    <div class="swatch" style="background: linear-gradient(135deg,#6366F1,#4F46E5);"></div>
+    <div class="swatch" style="background: linear-gradient(135deg,#EC4899,#DB2777);"></div>
+    <div class="swatch" style="background: linear-gradient(135deg,#10B981,#059669);"></div>
+    <div class="swatch large selected" style="background: linear-gradient(135deg,#F59E0B,#D97706); border-color: #FCD34D;"></div>
+    <div class="swatch" style="background: linear-gradient(135deg,#0EA5E9,#0284C7);"></div>
+    <div class="swatch" style="background: linear-gradient(135deg,#8B5CF6,#7C3AED);"></div>
+    <div class="swatch" style="background: linear-gradient(135deg,#D946EF,#C026D3);"></div>
+    <div class="swatch" style="background: linear-gradient(135deg,#84CC16,#65A30D);"></div>
+  </div>
+
+  <!-- Phone pair -->
+  <div class="phones-row">
+    <!-- Light -->
+    <div>
+      <div class="phone light">
+        <div class="phone-notch"></div>
+        <div class="ph-header-light">
+          <div class="ph-title-light">✦ QuickNote</div>
+          <div class="ph-search-light">🔍 Ara...</div>
+        </div>
+        <div class="ph-grid">
+          <div class="ph-card-light">
+            <div class="ph-star-light">★</div>
+            <div class="ph-card-title-light">Alışveriş</div>
+            <div class="ph-card-body-light">Ekmek, süt, peynir...</div>
+            <div class="ph-tag-light">Kişisel</div>
+          </div>
+          <div class="ph-card-light">
+            <div class="ph-star-light" style="color:#B45309">☆</div>
+            <div class="ph-card-title-light">İş Notları</div>
+            <div class="ph-card-body-light">Toplantı özeti...</div>
+            <div class="ph-tag-light">İş</div>
+          </div>
+          <div class="ph-card-light">
+            <div class="ph-star-light">★</div>
+            <div class="ph-card-title-light">Fikirler</div>
+            <div class="ph-card-body-light">Yeni proje konsepti...</div>
+            <div class="ph-tag-light">Fikir</div>
+          </div>
+          <div class="ph-card-light">
+            <div class="ph-star-light" style="color:#B45309">☆</div>
+            <div class="ph-card-title-light">Kitap</div>
+            <div class="ph-card-body-light">Okuma listesi...</div>
+            <div class="ph-tag-light">Okuma</div>
+          </div>
+        </div>
+      </div>
+      <div class="phone-label label-light">☀️ Açık Mod</div>
+    </div>
+
+    <!-- Dark -->
+    <div>
+      <div class="phone dark">
+        <div class="phone-notch"></div>
+        <div class="ph-header-dark">
+          <div class="ph-title-dark">✦ QuickNote</div>
+          <div class="ph-search-dark">🔍 Ara...</div>
+        </div>
+        <div class="ph-grid">
+          <div class="ph-card-dark">
+            <div class="ph-star-dark">★</div>
+            <div class="ph-card-title-dark">Alışveriş</div>
+            <div class="ph-card-body-dark">Ekmek, süt, peynir...</div>
+            <div class="ph-tag-dark">Kişisel</div>
+          </div>
+          <div class="ph-card-dark">
+            <div class="ph-star-dark" style="color:#44300A">☆</div>
+            <div class="ph-card-title-dark">İş Notları</div>
+            <div class="ph-card-body-dark">Toplantı özeti...</div>
+            <div class="ph-tag-dark">İş</div>
+          </div>
+          <div class="ph-card-dark">
+            <div class="ph-star-dark">★</div>
+            <div class="ph-card-title-dark">Fikirler</div>
+            <div class="ph-card-body-dark">Yeni proje konsepti...</div>
+            <div class="ph-tag-dark">Fikir</div>
+          </div>
+          <div class="ph-card-dark">
+            <div class="ph-star-dark" style="color:#44300A">☆</div>
+            <div class="ph-card-title-dark">Kitap</div>
+            <div class="ph-card-body-dark">Okuma listesi...</div>
+            <div class="ph-tag-dark">Okuma</div>
+          </div>
+        </div>
+      </div>
+      <div class="phone-label" style="color: rgba(255,255,255,0.5);">🌙 Koyu Mod</div>
+    </div>
+  </div>
+
+  <!-- All themes grid -->
+  <div class="theme-grid">
+    <!-- indigo -->
+    <div class="theme-card">
+      <div class="theme-header" style="background: linear-gradient(135deg,#6366F1,#4F46E5);">Mor</div>
+      <div class="theme-body" style="background:#F8FAFC;">
+        <div class="theme-note" style="background: rgba(99,102,241,0.15);"></div>
+        <div class="theme-note-sm" style="background: rgba(99,102,241,0.08);"></div>
+      </div>
+    </div>
+    <!-- rose -->
+    <div class="theme-card">
+      <div class="theme-header" style="background: linear-gradient(135deg,#EC4899,#DB2777);">Pembe</div>
+      <div class="theme-body" style="background:#FDF2F8;">
+        <div class="theme-note" style="background: rgba(236,72,153,0.15);"></div>
+        <div class="theme-note-sm" style="background: rgba(236,72,153,0.08);"></div>
+      </div>
+    </div>
+    <!-- emerald -->
+    <div class="theme-card">
+      <div class="theme-header" style="background: linear-gradient(135deg,#10B981,#059669);">Yeşil</div>
+      <div class="theme-body" style="background:#ECFDF5;">
+        <div class="theme-note" style="background: rgba(16,185,129,0.15);"></div>
+        <div class="theme-note-sm" style="background: rgba(16,185,129,0.08);"></div>
+      </div>
+    </div>
+    <!-- amber -->
+    <div class="theme-card">
+      <div class="theme-header" style="background: linear-gradient(135deg,#F59E0B,#D97706);">Sarı</div>
+      <div class="theme-body" style="background:#FFFBEB;">
+        <div class="theme-note" style="background: rgba(245,158,11,0.15);"></div>
+        <div class="theme-note-sm" style="background: rgba(245,158,11,0.08);"></div>
+      </div>
+    </div>
+    <!-- sky -->
+    <div class="theme-card">
+      <div class="theme-header" style="background: linear-gradient(135deg,#0EA5E9,#0284C7);">Mavi</div>
+      <div class="theme-body" style="background:#F0F9FF;">
+        <div class="theme-note" style="background: rgba(14,165,233,0.15);"></div>
+        <div class="theme-note-sm" style="background: rgba(14,165,233,0.08);"></div>
+      </div>
+    </div>
+    <!-- violet -->
+    <div class="theme-card">
+      <div class="theme-header" style="background: linear-gradient(135deg,#8B5CF6,#7C3AED);">Violet</div>
+      <div class="theme-body" style="background:#F5F3FF;">
+        <div class="theme-note" style="background: rgba(139,92,246,0.15);"></div>
+        <div class="theme-note-sm" style="background: rgba(139,92,246,0.08);"></div>
+      </div>
+    </div>
+    <!-- fuchsia -->
+    <div class="theme-card">
+      <div class="theme-header" style="background: linear-gradient(135deg,#D946EF,#C026D3);">Fuşya</div>
+      <div class="theme-body" style="background:#FAE8FF;">
+        <div class="theme-note" style="background: rgba(217,70,239,0.15);"></div>
+        <div class="theme-note-sm" style="background: rgba(217,70,239,0.08);"></div>
+      </div>
+    </div>
+    <!-- lime -->
+    <div class="theme-card">
+      <div class="theme-header" style="background: linear-gradient(135deg,#84CC16,#65A30D);">Limon</div>
+      <div class="theme-body" style="background:#F7FEE7;">
+        <div class="theme-note" style="background: rgba(132,204,22,0.15);"></div>
+        <div class="theme-note-sm" style="background: rgba(132,204,22,0.08);"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-msg">
+    <strong>8 farklı tema</strong> ile uygulamayı tamamen kendine göre özelleştir
+  </div>
+
+</body>
+</html>
